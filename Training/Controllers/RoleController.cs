@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Training.Models;
 
 namespace Training.Controllers
@@ -14,27 +14,17 @@ namespace Training.Controllers
     {
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly UserManager<IdentityUser> _userManager;
-        public RoleController(RoleManager<IdentityRole> roleManager, UserManager<IdentityUser> userManager)
+        private readonly ILogger<RoleController> _logger;
+
+        public RoleController(RoleManager<IdentityRole> roleManager, UserManager<IdentityUser> userManager, ILogger<RoleController> logger)
         {
             _userManager = userManager;
+            _logger = logger;
             _roleManager = roleManager;
         }
-        public async Task<IActionResult> IndexAsync()
+        public async Task<IActionResult> Index()
         {
-            var dataReturn = new List<Role>();
-            var listRole = _roleManager.Roles;
-            List<string> names = new List<string>();
-            foreach (var item in listRole)
-            {
-                names.Clear();
-                foreach (IdentityUser user in _userManager.Users)
-                {
-                    if (await _userManager.IsInRoleAsync(user, item.Name))
-                        names.Add(user.UserName);
-                }
-                dataReturn.Add(new Role { Id = item.Id, Name = item.Name, User = string.Join(", ", names) });
-            }
-            return View(dataReturn);
+            return View(await ListRole());
         }
 
         public IActionResult Create() => View();
@@ -46,7 +36,10 @@ namespace Training.Controllers
             {
                 IdentityResult result = await _roleManager.CreateAsync(new IdentityRole(role.Name));
                 if (result.Succeeded)
+                {
+                    _logger.LogInformation("Create Role Success");
                     return RedirectToAction("Index");
+                }
                 else
                     Errors(result);
             }
@@ -60,13 +53,16 @@ namespace Training.Controllers
             {
                 IdentityResult result = await _roleManager.DeleteAsync(role);
                 if (result.Succeeded)
+                {
+                    _logger.LogInformation("Delete Role Success");
                     return RedirectToAction("Index");
+                }
                 else
                     Errors(result);
             }
             else
                 ModelState.AddModelError("", "No role found");
-            return View("Index", _roleManager.Roles);
+            return View("Index",await ListRole());
         }
 
         public async Task<IActionResult> SetUser(string id)
@@ -139,8 +135,14 @@ namespace Training.Controllers
             {
                 IdentityRole thisRole = await _roleManager.FindByIdAsync(role.Id);
                 thisRole.Name = role.Name;
-                await _roleManager.UpdateAsync(thisRole);
-                return RedirectToAction("Index");
+                var result = _roleManager.UpdateAsync(thisRole);
+                if (result.IsCompletedSuccessfully)
+                {
+                    _logger.LogInformation("Edit Role Success");
+                    return RedirectToAction("Index");
+                }
+
+                return View(role);
             }
             catch (Exception ex)
             {
@@ -151,7 +153,28 @@ namespace Training.Controllers
         private void Errors(IdentityResult result)
         {
             foreach (IdentityError error in result.Errors)
+            {
+                _logger.LogError("Log Error From Role Controller: " + error.Description);
                 ModelState.AddModelError("", error.Description);
+            }
+        }
+
+        private async Task<IEnumerable<Role>> ListRole()
+        {
+            var listRole = new List<Role>();
+            var roles = _roleManager.Roles;
+            List<string> names = new List<string>();
+            foreach (var item in roles)
+            {
+                names.Clear();
+                foreach (IdentityUser user in _userManager.Users)
+                {
+                    if (await _userManager.IsInRoleAsync(user, item.Name))
+                        names.Add(user.UserName);
+                }
+                listRole.Add(new Role { Id = item.Id, Name = item.Name, User = string.Join(", ", names) });
+            }
+            return listRole;
         }
     }
 }

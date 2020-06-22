@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Training.Models;
 
 namespace Training.Controllers
@@ -13,13 +12,15 @@ namespace Training.Controllers
     public class UserController : Controller
     {
         private readonly UserManager<IdentityUser> _userManager;
-        private IPasswordHasher<IdentityUser> _passwordHasher;
-        private IPasswordValidator<IdentityUser> _passwordValidator;
-        private IUserValidator<IdentityUser> _userValidator;
+        private readonly IPasswordHasher<IdentityUser> _passwordHasher;
+        private readonly IPasswordValidator<IdentityUser> _passwordValidator;
+        private readonly IUserValidator<IdentityUser> _userValidator;
+        private readonly ILogger<UserController> _logger;
 
-        public UserController(UserManager<IdentityUser> userManager, IPasswordHasher<IdentityUser> passwordHasher, IPasswordValidator<IdentityUser> passwordValidator, IUserValidator<IdentityUser> userValidator)
+        public UserController(UserManager<IdentityUser> userManager, IPasswordHasher<IdentityUser> passwordHasher, IPasswordValidator<IdentityUser> passwordValidator, IUserValidator<IdentityUser> userValidator, ILogger<UserController> logger)
         {
             _userValidator = userValidator;
+            _logger = logger;
             _passwordValidator = passwordValidator;
             _passwordHasher = passwordHasher;
             _userManager = userManager;
@@ -47,6 +48,7 @@ namespace Training.Controllers
                     result = await _userManager.AddToRoleAsync(identityUser, "User");
                     if (!result.Succeeded)
                         Errors(result);
+                    _logger.LogInformation("Create User Success");
                     return RedirectToAction("Index");
                 }
                 else
@@ -72,7 +74,10 @@ namespace Training.Controllers
                 };
                 IdentityResult result = await _userManager.CreateAsync(identityUser, user.Password);
                 if (result.Succeeded)
+                {
+                    _logger.LogInformation("Create User Success");
                     return RedirectToAction("Index", "Home");
+                }
                 else
                 {
                     foreach (IdentityError error in result.Errors)
@@ -103,7 +108,10 @@ namespace Training.Controllers
                 if (!string.IsNullOrEmpty(user.Name))
                 {
                     if (validUser.Succeeded)
+                    {
+                        _logger.LogInformation("Edit User Success");
                         identityUser.UserName = user.Name;
+                    }
                     else
                         Errors(validUser);
                 }
@@ -152,7 +160,10 @@ namespace Training.Controllers
             {
                 IdentityResult result = await _userManager.DeleteAsync(user);
                 if (result.Succeeded)
+                {
+                    _logger.LogInformation("Delete User Success");
                     return RedirectToAction("Index");
+                }
                 else
                     Errors(result);
             }
@@ -164,7 +175,10 @@ namespace Training.Controllers
         private void Errors(IdentityResult result)
         {
             foreach (IdentityError error in result.Errors)
+            {
+                _logger.LogError("Log Error From Role Controller: "+ error.Description);
                 ModelState.AddModelError("", error.Description);
+            }
         }
     }
 }

@@ -12,6 +12,7 @@ using Training.Data;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Training.Extensions;
 
 namespace Training
 {
@@ -33,6 +34,7 @@ namespace Training
             //services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = false)
             //    .AddEntityFrameworkStores<ApplicationDbContext>();
             services.AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>();
+            services.AddElasticsearch(Configuration);
             services.AddControllersWithViews();
             services.AddRazorPages();
         }
