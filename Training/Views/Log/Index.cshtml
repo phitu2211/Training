@@ -1,0 +1,70 @@
+﻿@model Training.Helper.PaginatedList<Log>
+
+@{
+    ViewBag.Title = "Logging";
+    Layout = "_Layout";
+}
+<h1>Logging</h1>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>
+            @Html.DisplayNameFor(model => model[0].Level)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model[0].Message)
+        </th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Level)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Message)
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+@{
+    var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+    var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+    var prevPage = Model.PageIndex - 1 + "";
+    var nextPage = Model.PageIndex + 1 + "";
+}
+
+<a asp-action="Index"
+   asp-route-pageNumber="@(1)"
+   class="btn btn-default @prevDisabled">
+    First Page
+</a>
+@if (Model.HasPreviousPage)
+{
+    <a asp-action="Index"
+       asp-route-pageNumber="@(Model.PageIndex - 1)"
+       class="btn btn-default">
+        @prevPage
+    </a>
+}
+
+<a class="btn btn-default">
+    @Html.DisplayFor(model => model.PageIndex)
+</a>
+
+@if (Model.HasNextPage)
+{
+    <a asp-action="Index"
+       asp-route-pageNumber="@(Model.PageIndex + 1)"
+       class="btn btn-default">
+        @nextPage
+    </a>
+}
+<a asp-action="Index"
+   asp-route-pageNumber="@(Model.TotalPage)"
+   class="btn btn-default @nextDisabled">
+    Last Page
+</a>
